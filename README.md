@@ -342,3 +342,190 @@ public:
 };
 ```
 
+***
+
+## 2020/11/28 [91. 解码方法](https://leetcode-cn.com/problems/decode-ways/)
+
+一条包含字母 `A-Z` 的消息通过以下方式进行了编码：
+
+```
+'A' -> 1
+'B' -> 2
+...
+'Z' -> 26
+```
+
+给定一个只包含数字的**非空**字符串，请计算解码方法的总数。
+
+题目数据保证答案肯定是一个 32 位的整数。
+
+**示例 1：**
+
+```
+输入：s = "12"
+输出：2
+解释：它可以解码为 "AB"（1 2）或者 "L"（12）。
+```
+
+**示例 2：**
+
+```
+输入：s = "226"
+输出：3
+解释：它可以解码为 "BZ" (2 26), "VF" (22 6), 或者 "BBF" (2 2 6) 。
+```
+
+
+
+**解题思路：**
+
+**动态规划：**该题需要进行分类，首先进行状态定义，设`dp[i]`为`[0,i]`之间的最大译码数量。
+
+然后进行状态转移方程的推导。这里需要明确的第一件事是，`s[i]`需要分情况讨论：
+
+- 当`s[i]=='0'`时
+  - 当`s[i-1]=='1' | s[i-1]=='2'`时，由于`'0'`无法进行译码，所以实际上`s[i-1]s[i]`是合并译码的，此时`dp[i]=dp[i-2]`
+  - 又因为只有26个数，因此，不满足以上两个条件，则无解
+
+- 当`s[i]>='1' && s[i] <= '9'`时，此时`dp[i]=dp[i-1]+dp[i-2]`。既可以`s[i-1]s[i]`合并译码`dp[i-2]`，也可以`s[i-1]s[i]`分开译码`dp[i-1]`
+- 当`s[i-1]=='2' && s[i]>='1' && s[i] <= '6'`时，意味着此时数组为[21,26]，则同上`dp[i]=dp[i-1]+dp[i-2]`
+- 当数组为个位数的时候，`dp[i]=dp[i-1]`
+
+最后，起始条件`dp[0]=0`;`dp[1]=1`
+
+
+
+**代码实现：**
+
+```c++
+class Solution {
+public:
+    int numDecodings(string s) {
+  		if (s[0] == '0') {
+            return 0;
+        }   
+        int pre = 1;		//前一个数的译码数量
+        int cur = 1;		//存放当前数的译码数量
+        for (int i = 1; i < s.size(); i++) {
+            int tmp = cur;
+            if (s[i] == '0') {
+                if (s[i - 1] == '1' || s[i - 2] == '2') {
+                    cur = pre;			//如果字符是10或者20,则合并译码，当前译码数量等于前一个数的译码数量
+                }
+                else {
+                    return 0;
+                }
+            }
+            else if (s[i - 1] == '1' || (s[i - 1] == '2' && s[i] >= '1' && s[i] <= '6')) {
+                cur = pre + cur;			//如果字符为[11,26]不包括20，则既可以分开译码也可以合并译码，当前译码数量，等于pre+cur;
+            }
+            pre = tmp;						//一个循环，将当前数设置为之前数
+        }
+        return cur;
+    }
+};
+```
+
+***
+
+## 2020/12/02 [204. 计数质数](https://leetcode-cn.com/problems/count-primes/)
+
+统计所有小于非负整数 n 的质数的数量。
+
+示例 1：
+
+```
+输入：n = 10
+输出：4
+解释：小于 10 的质数一共有 4 个, 它们是 2, 3, 5, 7 。
+示例 2：
+
+输入：n = 0
+输出：0
+示例 3：
+
+输入：n = 1
+输出：0
+```
+
+
+
+**解题思路：**
+
+本题是一道简单题，但是从这道简单题中学到了一些新的算法和思想，特此记录
+
+1. **暴力法和优化暴力法**
+
+   判断一个数是不是质数的方法，就是看该数是否存在除1和它本身之外的因数。因此，可以从2开始，一个一个计算n是否能整除。
+
+   然而这种暴力法用时极高，需要进行优化。
+
+   假设`y`是`x`的一个因数，那么`x/y`也一定是`x`的因数，可以判断出，两个因数中更小的那个的区间范围一定是`[2, sqrt(x)]`，因此，时间复杂度可以降低为O（根号x）
+
+2. **埃式筛：**这是今天学到的一个新的算法，基本原理如下：
+
+   ![img](https://img-blog.csdnimg.cn/20181218124213973.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L2hvbGx5X1pfUF9G,size_16,color_FFFFFF,t_70)
+
+   
+
+**代码实现：**
+
+```c++
+class Solution {
+public:
+    //埃式筛
+    int countPrimes(int n) {
+        vector<int> IsPrime(n, 1);
+        int count = 0;
+        for (int i = 2; i < n; i++) {
+            if (IsPrime[i]) {
+                count++;
+                for (int j = 2 * i; j < n; j += i) {        //埃式筛法将最小的素数留下并将其相应的倍数去除
+                    IsPrime[j] = 0; 
+                }
+            }
+        }
+        return count;
+    }
+/*
+    //优化的暴力法
+    bool IsPrime(int x) {
+        for (int i = 2; i * i <= x; i++) {
+            if (x % i == 0) {
+                return false;
+            }
+        }
+        return true;
+    }
+
+    int countPrimes(int n) {
+        int count = 0;
+        for (int i = 2; i < n; i++) {
+            if (IsPrime(i)) {
+                count++;
+            }
+        }
+        return count;
+    }
+
+    //暴力法，一个数一个数的判断是否是质数
+    int countPrimes(int n) {
+        int count = 0;
+        for (int i = 2; i < n; i++) {
+            int flag = 1;
+            for (int j = 2; j < i; j++) {
+                if (i % j == 0) {
+                    flag = 0;
+                    break;
+                }
+            }
+            if (flag) {
+                count++;
+            }
+        }
+        return count;
+    }
+*/
+}; 
+```
+

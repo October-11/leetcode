@@ -529,3 +529,97 @@ public:
 }; 
 ```
 
+***
+
+## 2020/12/05 [659. 分割数组为连续子序列](https://leetcode-cn.com/problems/split-array-into-consecutive-subsequences/)
+
+这道题其实是昨天的一道题，但是这道题搞了我很久，特此记录
+
+给你一个按升序排序的整数数组 num（可能包含重复数字），请你将它们分割成一个或多个子序列，其中每个子序列都由连续整数组成且长度至少为 3 。
+
+如果可以完成上述分割，则返回 true ；否则，返回 false 。
+
+```
+示例 1：
+输入: [1,2,3,3,4,5]
+输出: True
+解释:
+你可以分割出这样两个连续子序列 : 
+1, 2, 3
+3, 4, 5
+
+示例 2：
+输入: [1,2,3,3,4,4,5,5]
+输出: True
+解释:
+你可以分割出这样两个连续子序列 : 
+1, 2, 3, 4, 5
+3, 4, 5
+
+示例 3：
+输入: [1,2,3,4,4,5]
+输出: False
+
+```
+
+
+
+
+
+**解题思路：**
+
+这道题的几个关键点：
+
+- 升序排列
+- 连续整数
+- 长度至少为3
+
+这几个关键点分别说明了，每个子序列一定是顺序的，不存在跨越式的升序，比如3，5跳过了4。其次每个子序列必须大于等于3，意味着一旦有一个最小子序列小于3，势必返回`false`。
+
+运用哈希表+小根堆处理这个问题。
+
+- 以当前数作为键名。以以当前数为序列尾的序列长度尾键值，运用最小堆将序列长度由小到大存放。
+- 策略：如果当前值能够与前面的值相连，则不需要重新建立新键，并将最小的长度序列pop
+  - 当前值不能与已有的序列相连，则新建序列。当前数为键名的序列加一
+  - 当前序列可以和已有的序列相连：
+    - 从最小堆中取出最小的一个序列，将序列长度+1，并将键名替换成当前数**(注意，这个地方需要先将前一个键值删除，不然会报错)**
+
+- 再运用一个优先队列，判断最小的子序列是否都大于等于3。
+
+
+
+**代码实现：**
+
+```c++
+class Solution {
+public:
+    bool isPossible(vector<int>& nums) {
+        //哈希表的键值存储每个子序列的最后一个数，最小堆存放每个子序列的长度，则每次pop的是最小的序列长度，需要至少==3；
+        unordered_map<int, priority_queue<int, vector<int>, greater<int>>> mp;
+        for (auto& val : nums) {    
+            if (mp.find(val) == mp.end()) {         //如果当前map中找不到相应的val，则新建一个子序列
+                mp[val] = priority_queue<int, vector<int>, greater<int>> ();
+            }
+            if (mp.find(val - 1) != mp.end()) {     //如果找到了val，且val-1也存在map中
+                int prelength = mp[val - 1].top();  //取出加入val之前的最小子序列长度
+                mp[val - 1].pop();
+                if (mp[val - 1].empty()) {          //删除以前数结尾为键，这一步很重要，不然会报错
+                    mp.erase(val - 1);
+                }
+                mp[val].push(prelength + 1);         //将val加入后，将序列长度重新加入优先队列中
+            }
+            else {                                   //如果map中没有找到val-1，即val不能连接val-1，则需要重新建立一个序列
+                mp[val].push(1);
+            }
+        }
+        for (auto it = mp.begin(); it != mp.end(); it++) {
+            priority_queue<int, vector<int>, greater<int>> queue = it -> second;
+            if (queue.top() < 3) {
+                return false;
+            }
+        }
+        return true;
+    }
+};
+```
+
